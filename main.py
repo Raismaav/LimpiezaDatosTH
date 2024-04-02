@@ -37,7 +37,22 @@ print(len(df['service'].unique()))
 # Se cambian los valores de la columna 'service' por valores numéricos
 df['service'] = df['service'].replace(df['service'].unique(), range(len(df['service'].unique())))
 
+# Se listan los valores únicos de la columna 'flag' y se almacena la cantidad de estos valores unicos
+print(df['flag'].unique())
+print(len(df['flag'].unique()))
+
+# Se hace el conteo de valores unicos de la columna 'flag'
+print(df['flag'].value_counts())
 
 
+# Se cambian los valores de la columna 'flag' y se almacena la cantidad de estos valores
+df['flag'] = df['flag'].replace(df['flag'].unique(), range(len(df['flag'].unique())))
+
+# Se listan los valores únicos de la columna 'attack' y se almacena la cantidad de estos valores unicos
+print(df['attack'].unique())
+print(len(df['attack'].unique()))
+
+# Se cambian los valores de la columna 'flag' y se almacena la cantidad de estos valores
+df['attack'] = df['attack'].replace(df['attack'].unique(), range(len(df['attack'].unique())))
 
 df.to_csv('dataset_train.csv', index=False, header=True)
