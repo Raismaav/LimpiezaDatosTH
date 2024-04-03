@@ -41,10 +41,6 @@ df['service'] = df['service'].replace(df['service'].unique(), range(len(df['serv
 print(df['flag'].unique())
 print(len(df['flag'].unique()))
 
-# Se hace el conteo de valores unicos de la columna 'flag'
-print(df['flag'].value_counts())
-
-
 # Se cambian los valores de la columna 'flag' y se almacena la cantidad de estos valores
 df['flag'] = df['flag'].replace(df['flag'].unique(), range(len(df['flag'].unique())))
 
@@ -54,5 +50,23 @@ print(len(df['attack'].unique()))
 
 # Se cambian los valores de la columna 'flag' y se almacena la cantidad de estos valores
 df['attack'] = df['attack'].replace(df['attack'].unique(), range(len(df['attack'].unique())))
+
+# Eliminar columna 'wrong_fragment', 'urgent', 'num_failed_logins', 'num_compromised', 'num_shells',
+# 'root_shell', 'su_attempted', 'num_root', 'num_file_creations', 'num_access_files',
+# 'num_outbound_cmds', 'is_host_login', 'is_guest_login', 'loggin_in', 'last_flag'
+df = df.drop(columns=['wrong_fragment', 'urgent', 'num_failed_logins', 'num_compromised',
+                      'root_shell', 'su_attempted', 'num_root', 'num_file_creations',
+                      'num_access_files', 'num_outbound_cmds', 'is_host_login',
+                      'is_guest_login', 'logged_in', 'last_flag', 'num_shells'])
+
+# Verificar tipo de datos de cada columna
+print(df.dtypes)
+
+# Todos tipos de datos int64 se cambian a float64,excepto de las columnas eliminadas
+for column in df.columns:
+    if df[column].dtype == 'int64':
+        df[column] = df[column].astype('float64')
+print(f'\n{df.dtypes}')
+
 
 df.to_csv('dataset_train.csv', index=False, header=True)
