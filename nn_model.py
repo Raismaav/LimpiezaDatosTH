@@ -62,11 +62,12 @@ class MyModel(nn.Module):
         return output
 
 
-def train(model_name='model.pth', lr=0.01, epochs=100, prints=10):
+def train(model_name='model', lr=0.01, epochs=100, prints=10):
     model = MyModel()
     loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
     history = pd.DataFrame()
+    higher_accuracy = 0
 
     for epoch in range(epochs):
         predictions = model(dataset_train)
@@ -83,6 +84,10 @@ def train(model_name='model.pth', lr=0.01, epochs=100, prints=10):
             predictions = predictions.round()
             predictions = torch.argmax(predictions, dim=1)
             accuracy = predictions.eq(labels_test).sum() / float(labels_test.shape[0]) * 100
+
+
+
+
             if epoch % prints == 0:
                 print(f'Accuracy: {round(accuracy.item(), 4)}%\n')
 
@@ -92,8 +97,16 @@ def train(model_name='model.pth', lr=0.01, epochs=100, prints=10):
             'Accuracy': round(accuracy.item(), 4),
         }, index=[0])
         history = pd.concat([history, df_tmp], ignore_index=True)
+
+        #Se almacena el modelo en el punto con mayor precisión
+        if accuracy > higher_accuracy:
+            higher_accuracy = accuracy
+            print(higher_accuracy)
+            history.to_csv('mejor_resultado.csv', index=False, header=True)
+            torch.save(model.state_dict(), f'best_{model_name}.pth')
+
     history.to_csv('resultados.csv', index=False, header=True)
-    torch.save(model.state_dict(), model_name)
+    torch.save(model.state_dict(), f'{model_name}.pth')
 
 
 def print_plots():
@@ -120,7 +133,7 @@ def create_confusion_matrix(true_labels, predicted_labels):
     plt.figure(figsize=(10, 7))
     sns.heatmap(cm, annot=False, cmap='Blues')
     plt.xlabel('Predicted')
-    plt.ylabel('Actual')
+    plt.ylabel('Expected')
     plt.show()
 
     return cm  # Devuelve la matriz de confusión
