@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 
 # Lectura del dataset de entrenamiento
 df = pd.read_csv('SISA Trafic/AtaqueSISA.csv', header=None)
@@ -51,7 +50,9 @@ df['Protocol'] = df['Protocol'].replace(['QUIC', 'SSDP', 'MDNS', 'DNS', 'NBNS', 
 df['Protocol'] = df['Protocol'].replace('ICMPv6', 'ICMP')
 
 # Cambiamos los valores 'DTLS', 'OCSP', '0x99ea' por 'OTRO'
-df['Protocol'] = df['Protocol'].replace(['DTLS', 'OCSP', '0x99ea', 'ARP', 'IGMPv2', 'DB-LSP-DISC/JSON'], 'OTRO')
+df['Protocol'] = df['Protocol'].replace(['DTLS', 'OCSP', '0x99ea', 'ARP', 'IGMPv2', 'DB-LSP-DISC/JSON', 'RTCP',
+                                         'ISAKMP', 'SNMP', 'CLDAP', 'SRVLOC', 'eDonkey', 'ASF', 'IPMB', 'Pathport',
+                                         'RPC', 'Portmap', 'XDMCP', 'RIPv1', 'NFS', 'L2TP', 'RADIUS', 'L2TPv3'], 'OTRO')
 
 # Movemos la columna 'Protocol' a la segunda posición
 df = df[['Duration', 'Protocol'] + [col for col in df.columns if col != 'Duration' and col != 'Protocol']]
@@ -165,5 +166,8 @@ df['Service'] = df['Service'].replace(0, 'http')
 
 # Cambiamos los valores 'http' por 4
 df['Service'] = df['Service'].replace('http', 4)
+
+# Cambiamos el tipo de dato de todas las columnas a float64
+df = df.astype('float64')
 
 df.to_csv('SISA Trafic/TraficoSISA.csv', index=False, header=True)
