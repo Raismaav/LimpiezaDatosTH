@@ -63,25 +63,44 @@ df.insert(5, 'Dts_bytes', 0)
 # Convertir la columna 'Length' a tipo int64
 df['Length'] = df['Length'].astype('int64')
 
+# Obtenemos los valores de 'Destination' y 'Source' de la primera fila del DataFrame
 previous_destination = df.at[0, 'Destination']
 previous_source = df.at[0, 'Source']
+
+# Establecemos 'Scr_bytes' como la columna inicial a la que se sumará la longitud
 column = 'Scr_bytes'
+
+# Sumamos la longitud de la primera fila a la columna 'Scr_bytes'
 df.at[0, column] += df.at[0, 'Length']
+
+# Iteramos sobre el DataFrame desde la segunda fila
 for i in range(1, len(df)):
+    # Obtenemos los valores actuales de 'Destination' y 'Source'
     current_destination = df.at[i, 'Destination']
     current_source = df.at[i, 'Source']
+    # Obtenemos la longitud actual
     length = df.at[i, 'Length']
-
+    # Si tanto 'current_destination' como 'current_source' son diferentes a sus respectivos valores anteriores
     if current_destination != previous_destination and current_source != previous_source:
+        # Intercalamos los valores entre 'Scr_bytes' y 'Dts_bytes'
         if column == 'Scr_bytes':
             column = 'Dts_bytes'
         else:
             column = 'Scr_bytes'
+        # Si 'current_source' es diferente a 'previous_source' y 'current_source' es diferente a 'previous_destination'
         if current_source != previous_source and current_source != previous_destination:
+            # Asignamos 'Scr_bytes' a la columna
             column = 'Scr_bytes'
-
+    # Sumamos la longitud a la columna correspondiente
     df.at[i, column] += length
+    # Actualizamos los valores de 'previous_destination' y 'previous_source' para la siguiente iteración
     previous_destination = current_destination
     previous_source = current_source
+
+# Eliminamos la columna 'Length'
+df = df.drop(columns=['Length'])
+
+# Redondeamos la columna 'Time' con dos decimales
+df['Time'] = df['Time'].round(2)
 
 df.to_csv('SISA Trafic/TraficoSISA.csv', index=False, header=True)
