@@ -39,13 +39,6 @@ def clean_file(file_name, new_file_name):
     # Se cambian los valores de la columna 'service' por valores numéricos
     df['service'] = df['service'].replace(df['service'].unique(), range(len(df['service'].unique())))
 
-    # Se listan los valores únicos de la columna 'flag' y se almacena la cantidad de estos valores unicos
-    print(df['flag'].unique())
-    print(len(df['flag'].unique()))
-
-    # Se cambian los valores de la columna 'flag' y se almacena la cantidad de estos valores
-    df['flag'] = df['flag'].replace(df['flag'].unique(), range(len(df['flag'].unique())))
-
     # Se listan los valores únicos de la columna 'attack'
     print(df['attack'].unique())
     print(len(df['attack'].unique()))
@@ -73,6 +66,9 @@ def clean_file(file_name, new_file_name):
     attacks_to_replace = ['buffer_overflow', 'ps', 'loadmodule', 'xterm', 'rootkit', 'perl', 'sqlattack']
     df['attack'] = df['attack'].replace(attacks_to_replace, 'U2R')
 
+    # se eliminan las filas donde aparecen los valores 'U2R', 'R2L' y 'probe' en la columna 'attack'
+    df = df[~df['attack'].isin(['U2R', 'R2L', 'probe'])]
+
     # Se vuelven a listar los valores únicos de la columna 'attack' y se almacena la cantidad de estos valores unicos
     print(df['attack'].unique())
     print(len(df['attack'].unique()))
@@ -92,7 +88,7 @@ def clean_file(file_name, new_file_name):
                           'diff_srv_rate', 'srv_diff_host_rate', 'dst_host_count', 'dst_host_same_srv_rate',
                           'dst_host_diff_srv_rate', 'dst_host_same_src_port_rate',
                           'dst_host_srv_diff_host_rate', 'dst_host_serror_rate', 'dst_host_srv_serror_rate',
-                          'dst_host_rerror_rate', 'dst_host_srv_rerror_rate'])
+                          'dst_host_rerror_rate', 'dst_host_srv_rerror_rate', 'hot', 'flag', 'land'])
 
     # Verificar tipo de datos de cada columna
     print(df.dtypes)
@@ -102,5 +98,4 @@ def clean_file(file_name, new_file_name):
         if df[column].dtype == 'int64':
             df[column] = df[column].astype('float64')
     print(f'\n{df.dtypes}')
-
     df.to_csv(f'datasets/{new_file_name}', index=False, header=True)
