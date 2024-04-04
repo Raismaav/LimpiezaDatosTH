@@ -32,46 +32,54 @@ dataset_test = torch.FloatTensor(dataset_test).to('cpu')
 labels_train = torch.FloatTensor(labels_train).to('cpu')
 labels_test = torch.FloatTensor(labels_test).to('cpu')
 
+labels_train = labels_train[:, None]
+labels_test = labels_test[:, None]
+
 class MyModel(nn.Module):
     def __init__(self):
         super(MyModel, self).__init__()
         self.fc1 = nn.Linear(dataset_train.shape[1], 64)
         self.relu1 = nn.ReLU()
-        self.dropout1 = nn.Dropout(0.3)
+        self.dropout1 = nn.Dropout(0.5)
+
         self.fc2 = nn.Linear(64, 32)
         self.relu2 = nn.ReLU()
-        self.dropout2 = nn.Dropout(0.3)
-        self.fc3 = nn.Linear(32, 32)
+        self.dropout2 = nn.Dropout(0.5)
+
+        self.fc3 = nn.Linear(32, 16)
         self.relu3 = nn.ReLU()
-        self.fc4 = nn.Linear(32, 5)
-        self.relu4 = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
+        self.dropout3 = nn.Dropout(0.5)
+
+        self.fc4 = nn.Linear(16, 1)  # Solo una neurona en la capa de salida para clasificación binaria
+        self.sigmoid = nn.Sigmoid()  # Función de activación Sigmoid para la capa de salida
 
     def forward(self, input):
         output = self.fc1(input)
         output = self.relu1(output)
         output = self.dropout1(output)
+
         output = self.fc2(output)
         output = self.relu2(output)
         output = self.dropout2(output)
+
         output = self.fc3(output)
         output = self.relu3(output)
+        output = self.dropout3(output)
+
         output = self.fc4(output)
-        output = self.relu4(output)
-        output = self.sigmoid(output)
+        output = self.sigmoid(output)  # Aplicar la función de activación Sigmoid en la capa de salida
         return output
 
-
-def train(model_name='model', lr=0.01, epochs=100, prints=10):
+def train(model_name='model', lr=0.001, epochs=1000, prints=100):
     model = MyModel()
-    loss_fn = nn.CrossEntropyLoss()
+    loss_fn = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
     history = pd.DataFrame()
     higher_accuracy = 0
 
     for epoch in range(epochs):
         predictions = model(dataset_train)
-        loss = loss_fn(predictions, labels_train.long())
+        loss = loss_fn(predictions, labels_train)
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
@@ -82,14 +90,10 @@ def train(model_name='model', lr=0.01, epochs=100, prints=10):
         with torch.no_grad():
             predictions = model(dataset_test)
             predictions = predictions.round()
-            predictions = torch.argmax(predictions, dim=1)
             accuracy = predictions.eq(labels_test).sum() / float(labels_test.shape[0]) * 100
 
-
-
-
             if epoch % prints == 0:
-                print(f'Accuracy: {round(accuracy.item(), 4)}%\n')
+                print(f'Accuracy: {round(accuracy.item(), 4)}%')
 
         df_tmp = pd.DataFrame(data={
             'Epoch': epoch,
@@ -101,9 +105,12 @@ def train(model_name='model', lr=0.01, epochs=100, prints=10):
         #Se almacena el modelo en el punto con mayor precisión
         if accuracy > higher_accuracy:
             higher_accuracy = accuracy
-            print(higher_accuracy)
             history.to_csv('mejor_resultado.csv', index=False, header=True)
             torch.save(model.state_dict(), f'best_{model_name}.pth')
+
+        if epoch % prints == 0:
+            print(f'Higher accuracy: {round(higher_accuracy.item(), 4)}%\n')
+
 
     history.to_csv('resultados.csv', index=False, header=True)
     torch.save(model.state_dict(), f'{model_name}.pth')
@@ -139,7 +146,7 @@ def create_confusion_matrix(true_labels, predicted_labels):
     return cm  # Devuelve la matriz de confusión
 
 
-def test(model_name='model.pth'):
+def test(model_name='final_model.pth'):
     import matplotlib.pyplot as plt
     import seaborn as sns
     model = MyModel()
@@ -149,7 +156,7 @@ def test(model_name='model.pth'):
     with torch.no_grad():
         predictions = model(dataset_test)
         predictions = predictions.round()
-        predictions = torch.argmax(predictions, dim=1)
+        predictions = 1 - predictions
         accuracy = predictions.eq(labels_test).sum() / float(labels_test.shape[0]) * 100
         print(f'Accuracy: {round(accuracy.item(), 4)}%\n')
 
@@ -159,7 +166,7 @@ def test(model_name='model.pth'):
     plt.clf()
 
 
-def eval(data, model_name='model.pth', rounded=False):
+def eval(data, model_name='final_model.pth'):
     # Carga el modelo
     model = MyModel()
     model.load_state_dict(torch.load(model_name))
@@ -175,8 +182,8 @@ def eval(data, model_name='model.pth', rounded=False):
     # Haz la predicción
     with torch.no_grad():
         predictions = model(data)
-        if rounded:
-            predictions = predictions.round()
+        predictions = predictions.round()
+        predictions = 1 - predictions
 
     # Convierte las predicciones a una lista y devuélvelas
     return predictions.tolist()
