@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 # Lectura del dataset de entrenamiento
-df = pd.read_csv('SISA Trafic/prb.csv', header=None)
+df = pd.read_csv('SISA Trafic/AtaqueSISA.csv', header=None)
 
 # Obtenemos datos de la primera fila y lo guardamos en headers
 headers = df.iloc[0]
@@ -13,8 +13,16 @@ df.columns = headers
 # Se elimina la primera fila de datos
 df = df.iloc[1:]
 
+# Verificar si hay valores nulos en el DataFrame y eliminarlos
+df = df.dropna()
+
 # Eliminamos la columna 'No.'
 df = df.drop(columns=['No.'])
+
+# Expressión regular para obtener los segundos de la columna 'Time', ejemplo 21:29:33.023166
+# y lo aplicamos a la columna 'Time'
+df['Time'] = df['Time'].str.extract(r'(\d+:\d+:\d+\.\d+)')
+df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S.%f').dt.second
 
 # Convertimos la columna 'Time' a tipo float64
 df['Time'] = df['Time'].astype('float64')
@@ -52,13 +60,12 @@ df = df.reset_index(drop=True)
 # Cambiamos los valores 'TCP', 'UDP', 'ICMP', 'OTRO' por 0, 1, 2, 3
 df['Protocol'] = df['Protocol'].replace(['TCP', 'UDP', 'ICMP', 'OTRO'], [0, 1, 2, 3])
 
-# Creamos dos columnas 'Service' y 'Flag' con valores de 0 después de la columna 'Protocol'
+# Creamos una columna 'Flag' con valores de 0 después de la columna 'Protocol'
 df.insert(2, 'Service', 0)
-df.insert(3, 'Flag', 0)
 
 # Creamos dos columnas de tipo int64 'Str_bytes' y 'Dts_bytes' con valores de 0 y las ponemos en la posición 5 y 6
-df.insert(4, 'Scr_bytes', 0)
-df.insert(5, 'Dts_bytes', 0)
+df.insert(3, 'Scr_bytes', 0)
+df.insert(4, 'Dts_bytes', 0)
 
 # Convertir la columna 'Length' a tipo int64
 df['Length'] = df['Length'].astype('int64')
@@ -102,5 +109,61 @@ df = df.drop(columns=['Length'])
 
 # Redondeamos la columna 'Time' con dos decimales
 df['Time'] = df['Time'].round(2)
+
+# Creamos una nueva columna en la posición 5 llamada 'Count'
+df.insert(5, 'Count', 0)
+
+# Creamos una lista para almacenar los índices de las filas a eliminar
+rows_to_drop = []
+
+# Iteramos sobre el DataFrame desde la segunda fila
+for i in range(1, len(df)):
+    # Obtenemos los valores de 'Source' y 'Destination' de la fila actual
+    current_source = df.at[i, 'Source']
+    current_destination = df.at[i, 'Destination']
+
+    # Si 'current_source' es igual a 'previous_source' y 'current_destination' es igual a 'previous_destination'
+    if current_source == previous_source and current_destination == previous_destination:
+        # Sumamos la cantidad de veces consecutivas que se repite el valor en las columnas 'Source' y 'Destination'
+        # y el total de veces lo colocamos en la columna 'Count', si no se repite se coloca 1
+        df.at[i, 'Count'] = df.at[i - 1, 'Count'] + 1
+
+        # Añadimos el índice de la fila anterior a la lista de filas a eliminar
+        rows_to_drop.append(i - 1)
+    # Verificamos si la fuente actual es igual al destino anterior y el destino actual es igual a la fuente anterior
+    elif current_source == previous_destination and current_destination == previous_source:
+        # Si se cumple la condición, incrementamos el contador de la fila actual en uno
+        df.at[i, 'Count'] = df.at[i - 1, 'Count'] + 1
+
+        # Sumamos los bytes de la fuente de la fila anterior a los bytes de la fuente de la fila actual
+        df.at[i, 'Scr_bytes'] += df.at[i - 1, 'Scr_bytes']
+
+        # Sumamos los bytes del destino de la fila anterior a los bytes del destino de la fila actual
+        df.at[i, 'Dts_bytes'] += df.at[i - 1, 'Dts_bytes']
+
+        # Añadimos el índice de la fila anterior a la lista de filas a eliminar
+        rows_to_drop.append(i - 1)
+    else:
+        df.at[i, 'Count'] = 1
+
+    # Actualizamos los valores de 'previous_source' y 'previous_destination' para la siguiente iteración
+    previous_source = current_source
+    previous_destination = current_destination
+
+# Eliminamos del DataFrame todas las filas con índices almacenados en la lista 'rows_to_drop'
+df = df.drop(rows_to_drop)
+
+# Duplicamos la columna 5 en dos nuevas columnas 'Srv_count' y 'Dst_host_srv_count' en las posiciones 6 y 7
+df.insert(6, 'Srv_count', df['Count'])
+df.insert(7, 'Dst_host_srv_count', df['Count'])
+
+# Eliminas las columnas 'Time', 'Source', 'Destination', 'src_port', 'des_port' e 'Info'
+df = df.drop(columns=['Time', 'Source', 'Destination', 'src_port', 'des_port', 'Info'])
+
+# En la columna 'Service' cambiamos los valores 0 por 'http'
+df['Service'] = df['Service'].replace(0, 'http')
+
+# Cambiamos los valores 'http' por 4
+df['Service'] = df['Service'].replace('http', 4)
 
 df.to_csv('SISA Trafic/TraficoSISA.csv', index=False, header=True)
